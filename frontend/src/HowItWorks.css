@@ -1,0 +1,209 @@
+/* HowItWorks.css */
+.how-it-works {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 2rem;
+    background-color: #fff;
+    position: relative;
+    overflow: hidden; /* Ensure animations don't overflow */
+  }
+  
+  .title-container {
+    margin-bottom: 3rem;
+  }
+  
+  .section-button {
+    background-color: #FEF600;
+    color: black;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 5px #FF0090;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+    transition: all 0.3s ease;
+  }
+  
+
+  .steps-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 22%;
+    transition: transform 0.3s ease;
+  }
+  
+  .step:hover {
+    transform: translateY(-10px);
+  }
+  
+  .step-icon {
+    width: 100%;
+    aspect-ratio: 1;
+    background-color: white;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+    border: 2px solid #000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .step-icon:hover {
+    background-color: #FEF600;
+    border-color: #000000;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .step-icon img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+  
+  .step-icon:hover img {
+    transform: scale(1.1);
+  }
+  
+  .step-text {
+    text-align: center;
+    font-weight: bold;
+    transition: color 0.3s ease;
+  }
+  
+  .step:hover .step-text {
+    color: #000000;
+  }
+  
+  /* Floating Bubbles */
+  .bubbles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+  }
+  
+  .bubble {
+    position: absolute;
+    bottom: -100px;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(254, 246, 0, 0.3); /* Yellow bubbles */
+    border-radius: 50%;
+    animation: floatBubble 10s ease-in infinite;
+  }
+  
+  .bubble:nth-child(2) {
+    left: 10%;
+    width: 15px;
+    height: 15px;
+    animation-duration: 8s;
+    background-color: rgba(255, 0, 144, 0.3); /* Pink bubbles */
+  }
+  
+  .bubble:nth-child(3) {
+    left: 30%;
+    width: 25px;
+    height: 25px;
+    animation-duration: 12s;
+  }
+  
+  .bubble:nth-child(4) {
+    left: 50%;
+    width: 18px;
+    height: 18px;
+    animation-duration: 9s;
+    background-color: rgba(255, 0, 144, 0.3); /* Pink bubbles */
+  }
+  
+  .bubble:nth-child(5) {
+    left: 70%;
+    width: 22px;
+    height: 22px;
+    animation-duration: 11s;
+  }
+  
+  .bubble:nth-child(6) {
+    left: 90%;
+    width: 16px;
+    height: 16px;
+    animation-duration: 7s;
+    background-color: rgba(255, 0, 144, 0.3); /* Pink bubbles */
+  }
+  
+  @keyframes floatBubble {
+    0% {
+      bottom: -100px;
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      bottom: 100%;
+      opacity: 0;
+    }
+  }
+  
+  /* Pink background circle */
+  .how-it-works::before {
+    content: "";
+    position: absolute;
+    top: -100px;
+    left: -100px;
+    width: 200px;
+    height: 200px;
+    background-color: rgba(255, 0, 144, 0.1); /* Using the pink color with transparency */
+    border-radius: 50%;
+    z-index: -1;
+    animation: floatCircle 6s ease-in-out infinite;
+  }
+  
+  /* Yellow background circle */
+  .how-it-works::after {
+    content: "";
+    position: absolute;
+    bottom: -100px;
+    right: 100px;
+    width: 200px;
+    height: 200px;
+    background-color: rgba(254, 246, 0, 0.1); /* Using the yellow color with transparency */
+    border-radius: 50%;
+    z-index: -1;
+    animation: floatCircle 8s ease-in-out infinite;
+  }
+  
+  @keyframes floatCircle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .steps-container {
+      flex-wrap: wrap;
+    }
+    
+    .step {
+      width: 45%;
+      margin-bottom: 2rem;
+    }
+  }
