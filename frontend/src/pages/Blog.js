@@ -153,7 +153,7 @@ const Blog = () => {
             </div>
           </div>
         </div>
-        <div className="copyright">© 2025 Clofy Technologies. All rights reserved.</div>
+        <div className="copyright">© 2025 Clofy target_Audience. All rights reserved.</div>
       </footer>
     </div>
   );

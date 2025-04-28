@@ -1,0 +1,9 @@
+Django>=5.1
+djangorestframework
+psycopg2-binary
+python-dotenv
+dj-rest-auth
+django-allauth
+django-cors-headers
+djangorestframework-simplejwt
+requests
