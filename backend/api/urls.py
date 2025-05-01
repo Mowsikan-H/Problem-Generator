@@ -15,7 +15,14 @@ urlpatterns = [
     path('priorities/', views.get_priorities),
     path('urgencies/', views.get_urgencies),
     path('affectedscope/', views.get_affectedscope),
+    path('national/',views.get_national),
+    path('continental/',views.get_continental),
+    path('regional/',views.get_regional),
+
+
     path('generate-ideas/', views.generate_ideas, name='generate_ideas'),
+    path('save_full_idea/', views.save_full_idea_log, name='save_full_idea_log'),
+
 
 
 
