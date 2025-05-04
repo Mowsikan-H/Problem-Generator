@@ -13,12 +13,14 @@ const IdeaGenerator = () => {
     target_audience: '',
     Location: '',
     Urgency: '',
-    Priority: ''
+    Priority: '',
+    sublocation: ''
   });
   
   const [loading, setLoading] = useState({
     data: true,
-    generation: false
+    generation: false,
+    saving: false
   });
   
   const [dropdownOptions, setDropdownOptions] = useState({
@@ -31,79 +33,143 @@ const IdeaGenerator = () => {
   });
   
   const [generatedIdea, setGeneratedIdea] = useState(null);
+  const [error, setError] = useState(null);
+  const [locationDetails, setLocationDetails] = useState([]);
+  const [customLocationDetail, setCustomLocationDetail] = useState('');
+
+  // Get the authentication token from localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem('accessToken');
+  };
+
+  // Create auth header configuration
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
 
   // Fetch initial data on component mount
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setLoading(prev => ({ ...prev, data: true }));
-        
-        const endpoints = [
-          { key: 'industries', path: '/industries/' },
-          { key: 'Priority', path: '/priorities/' },
-          { key: 'Urgency', path: '/urgencies/' },
-          { key: 'Location', path: '/affectedscope/' }
-        ];
-        
-        const results = await Promise.all(
-          endpoints.map(async ({ key, path }) => {
-            const response = await fetch(`${API_BASE_URL}${path}`);
-            const data = await response.json();
-            
-            // Handle the varying response structures
-            let values;
-            if (key === 'industries') values = data.industries || [];
-            else if (key === 'Priority') values = data.priorities || [];
-            else if (key === 'Urgency') values = data.urgencies || [];
-            else if (key === 'Location') values = data.affectedscope || [];
-            
-            return { key, values };
-          })
-        );
-        
-        const newOptions = { ...dropdownOptions };
-        results.forEach(({ key, values }) => {
-          newOptions[key] = values;
-        });
-        
-        setDropdownOptions(newOptions);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, data: false }));
-      }
-    };
-    
     fetchInitialData();
   }, []);
 
   // Fetch subdomain and target audience when industry changes
   useEffect(() => {
-    const fetchIndustrySpecificData = async () => {
-      if (!formData.main_industry) return;
-      
-      try {
-        const categories = ['subdomain', 'target_audience'];
-        const newOptions = { ...dropdownOptions };
-        
-        await Promise.all(
-          categories.map(async (category) => {
-            const response = await fetch(
-              `${API_BASE_URL}/industry/${formData.main_industry}/${category}/`
-            );
-            const data = await response.json();
-            newOptions[category] = data[category] || [];
-          })
-        );
-        
-        setDropdownOptions(newOptions);
-      } catch (error) {
-        console.error('Error fetching industry-specific data:', error);
-      }
-    };
-    
-    fetchIndustrySpecificData();
+    if (formData.main_industry) {
+      fetchIndustrySpecificData();
+    }
   }, [formData.main_industry]);
+
+  const fetchInitialData = async () => {
+    try {
+      setLoading(prev => ({ ...prev, data: true }));
+      setError(null);
+      
+      const endpoints = [
+        { key: 'industries', path: '/industries/' },
+        { key: 'Priority', path: '/priorities/' },
+        { key: 'Urgency', path: '/urgencies/' },
+        { key: 'Location', path: '/affectedscope/' }
+      ];
+      
+      const results = await Promise.all(
+        endpoints.map(async ({ key, path }) => {
+          try {
+            const response = await axios.get(`${API_BASE_URL}${path}`, {
+              headers: getAuthHeaders()
+            });
+            
+            // Handle the varying response structures
+            let values;
+            if (key === 'industries') values = response.data.industries || [];
+            else if (key === 'Priority') values = response.data.priorities || [];
+            else if (key === 'Urgency') values = response.data.urgencies || [];
+            else if (key === 'Location') values = response.data.affectedscope || [];
+            
+            return { key, values };
+          } catch (err) {
+            console.error(`Error fetching ${key}:`, err);
+            return { key, values: [] };
+          }
+        })
+      );
+      
+      const newOptions = { ...dropdownOptions };
+      results.forEach(({ key, values }) => {
+        newOptions[key] = values;
+      });
+      
+      setDropdownOptions(newOptions);
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+      setError('Failed to load dropdown options. Please refresh the page.');
+    } finally {
+      setLoading(prev => ({ ...prev, data: false }));
+    }
+  };
+
+  const fetchIndustrySpecificData = async () => {
+    try {
+      setError(null);
+      const categories = ['subdomain', 'target_audience'];
+      const newOptions = { ...dropdownOptions };
+      
+      await Promise.all(
+        categories.map(async (category) => {
+          try {
+            const response = await axios.get(
+              `${API_BASE_URL}/industry/${formData.main_industry}/${category}/`,
+              { headers: getAuthHeaders() }
+            );
+            newOptions[category] = response.data[category] || [];
+          } catch (err) {
+            console.error(`Error fetching ${category}:`, err);
+            newOptions[category] = [];
+          }
+        })
+      );
+      
+      setDropdownOptions(newOptions);
+    } catch (error) {
+      console.error('Error fetching industry-specific data:', error);
+    }
+  };
+
+  const fetchLocationDetails = async (locationType) => {
+    if (['National', 'Regional', 'Continental'].includes(locationType)) {
+      try {
+        const url = `${API_BASE_URL}/${locationType.toLowerCase()}/`;
+        const response = await axios.get(url, {
+          headers: getAuthHeaders()
+        });
+        
+        let data = [];
+  
+        // Safely extract array based on expected server response structure
+        if (Array.isArray(response.data)) {
+          data = response.data;
+        } else if (Array.isArray(response.data.national)) {
+          data = response.data.national;
+        } else if (Array.isArray(response.data.regional)) {
+          data = response.data.regional;
+        } else if (Array.isArray(response.data.continental)) {
+          data = response.data.continental;
+        } else if (Array.isArray(response.data.results)) {
+          data = response.data.results;
+        }
+  
+        setLocationDetails(data);
+        setCustomLocationDetail('');
+        
+      } catch (error) {
+        console.error(`Error fetching ${locationType} data:`, error);
+        setLocationDetails([]);
+      }
+    } else {
+      setLocationDetails([]);
+    }
+  };
+  
 
   // Form handling
   const handleInputChange = (field, value) => {
@@ -115,32 +181,28 @@ const IdeaGenerator = () => {
         newData.subdomain = '';
         newData.target_audience = '';
       }
+
+      if (field === 'Location') {
+        fetchLocationDetails(value);
+        newData.sublocation = '';
+      }
       
       return newData;
     });
   };
 
-  const isFormValid = () => formData.focus && formData.main_industry && formData.subdomain;
+  const isFormValid = () => {
+    const { focus, main_industry, subdomain } = formData;
+    return focus.trim() !== '' && main_industry !== '' && subdomain !== '';
+  };
 
   // Idea generation
   const handleGenerateIdeas = async () => {
-    setLoading(prev => ({ ...prev, generation: true }));
-    
     try {
-      const prompt = `
-        Act as a problem-solving consultant and create a structured problem statement from the following user input.
-         Your task is to clearly define the problem in one line, identify the primary domain and sub-domain, 
-         specify the relevant stakeholders, and determine the urgency and priority of the issue. 
-        Ensure that the problem statement is concise, actionable, and well-defined to facilitate effective solutions.
-
-        Problem Statement: A clear, one-sentence description of the core problem ${formData.focus}
-        Primary Domain: The broader area where the problem exists ${formData.main_industry}
-        Sub-Domain: More specific area within the primary domain ${formData.subdomain}
-        Stakeholders: The key people or organizations impacted by or involved in the problem ${formData.target_audience || 'Not specified'}
-        Location: ${formData.Location || 'Not specified'}
-        Urgency: How urgent the problem is, in terms of time sensitivity ${formData.Urgency || 'Not specified'}
-        Priority: The level of importance or focus the problem should ${formData.Priority || 'Not specified'}
-      `;
+      setLoading(prev => ({ ...prev, generation: true }));
+      setError(null);
+      
+      const prompt = buildPrompt();
 
       const payload = {
         messages: [
@@ -150,14 +212,19 @@ const IdeaGenerator = () => {
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.7,
       };
 
       const response = await axios.post(
         `${API_BASE_URL}/generate-ideas/`, 
         payload,
-        { headers: { 'Content-Type': 'application/json' } }
+        { 
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          } 
+        }
       );
 
       const generatedContent = response.data.choices?.[0]?.message?.content;
@@ -175,15 +242,89 @@ const IdeaGenerator = () => {
             priority: formData.Priority || 'Not specified'
           }
         });
+      } else {
+        setError('No idea generated. Please try again.');
       }
     } catch (error) {
       console.error('Error generating ideas:', error);
+      if (error.response && error.response.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else {
+        setError('Failed to generate ideas. Please try again.');
+      }
     } finally {
       setLoading(prev => ({ ...prev, generation: false }));
     }
   };
 
-  // Component Rendering
+  const buildPrompt = () => {
+    const locationInfo = formData.sublocation || customLocationDetail;
+    const locationDetail = locationInfo ? ` (${locationInfo})` : '';
+    
+    return `
+      Act as a problem-solving consultant and create a structured problem statement from the following user input.
+      Your task is to clearly define the problem in one line, identify the primary domain and sub-domain, 
+      specify the relevant stakeholders, and determine the urgency and priority of the issue. 
+      Ensure that the problem statement is concise, actionable, and well-defined to facilitate effective solutions.
+
+      Problem Statement: A clear, one-sentence description of the core problem ${formData.focus}
+      Primary Domain: The broader area where the problem exists ${formData.main_industry}
+      Sub-Domain: More specific area within the primary domain ${formData.subdomain}
+      Stakeholders: The key people or organizations impacted by or involved in the problem ${formData.target_audience || 'Not specified'}
+      Location: ${formData.Location}${locationDetail || 'Not specified'}
+      Urgency: How urgent the problem is, in terms of time sensitivity ${formData.Urgency || 'Not specified'}
+      Priority: The level of importance or focus the problem should ${formData.Priority || 'Not specified'}
+    `;
+  };
+
+  const handleSaveIdea = async () => {
+    if (!generatedIdea) return;
+    
+    try {
+      setLoading(prev => ({ ...prev, saving: true }));
+      setError(null);
+      
+      const locationDetail = formData.sublocation || customLocationDetail;
+      
+      const payload = {
+        focus: formData.focus,
+        main_industry: formData.main_industry,
+        subdomain: formData.subdomain,
+        target_Audience: formData.target_audience,
+        Location: formData.Location,
+        location_detail: locationDetail,
+        Urgency: formData.Urgency,
+        Priority: formData.Priority,
+        generated_ideas: generatedIdea.description,
+      };
+  
+      const response = await axios.post(
+        `${API_BASE_URL}/save_full_idea/`, 
+        payload,
+        { 
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          } 
+        }
+      );
+  
+      console.log('Save successful', response.data);
+      alert('Problem saved successfully!');
+  
+    } catch (error) {
+      console.error('Error saving idea:', error);
+      if (error.response && error.response.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else {
+        setError('Failed to save idea. Please try again.');
+      }
+    } finally {
+      setLoading(prev => ({ ...prev, saving: false }));
+    }
+  };
+
+  // Component Renderers
   const Sidebar = () => (
     <div className="sidebar-panel">
       <div className="sidebar-logo">YAIIA <span className="logo-dot">•</span></div>
@@ -223,6 +364,55 @@ const IdeaGenerator = () => {
           <span>Upgrade to Pro</span>
         </button>
       </div>
+    </div>
+  );
+
+  const SelectField = ({ label, value, onChange, options, placeholder, disabled }) => (
+    <div className="form-group">
+      <h3>{label}</h3>
+      <div className="select-container">
+        <select 
+          value={value} 
+          onChange={e => onChange(e.target.value)}
+          disabled={disabled}
+          className={disabled ? 'disabled' : ''}
+        >
+          <option value="" disabled>{placeholder}</option>
+          {options.map((option, index) => (
+            <option key={index} value={option}>{option}</option>
+          ))}
+        </select>
+        <span className="select-arrow">▼</span>
+      </div>
+    </div>
+  );
+
+  const LocationDetailField = () => (
+    <div className="form-group">
+      <h3>Specify Location Details</h3>
+      {['National', 'Regional', 'Continental'].includes(formData.Location) ? (
+        <div className="select-container">
+          <select
+            value={formData.sublocation}
+            onChange={e => setFormData(prev => ({ ...prev, sublocation: e.target.value }))}
+          >
+            <option value="">Select an option</option>
+            {locationDetails.map((item, index) => (
+              <option key={index} value={item}>{item}</option>
+            ))}
+          </select>
+          <span className="select-arrow">▼</span>
+        </div>
+      ) : (
+        <div className="input-container">
+          <input
+            type="text"
+            value={customLocationDetail}
+            onChange={e => setCustomLocationDetail(e.target.value)}
+            placeholder="Enter location details"
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -279,6 +469,8 @@ const IdeaGenerator = () => {
         />
       </div>
 
+      <LocationDetailField />
+
       <div className="form-row">
         <SelectField 
           label="Select the Urgency Level"
@@ -305,29 +497,11 @@ const IdeaGenerator = () => {
           onClick={handleGenerateIdeas} 
           disabled={!isFormValid() || loading.generation}
         >
-          {loading.generation ? 'Generating...' : 'Generate Solution '}
+          {loading.generation ? 'Generating...' : 'Generate Solution'}
         </button>
       </div>
-    </div>
-  );
-
-  const SelectField = ({ label, value, onChange, options, placeholder, disabled }) => (
-    <div className="form-group">
-      <h3>{label}</h3>
-      <div className="select-container">
-        <select 
-          value={value} 
-          onChange={e => onChange(e.target.value)}
-          disabled={disabled}
-          className={disabled ? 'disabled' : ''}
-        >
-          <option value="" disabled>{placeholder}</option>
-          {options.map((option, index) => (
-            <option key={index} value={option}>{option}</option>
-          ))}
-        </select>
-        <span className="select-arrow">▼</span>
-      </div>
+      
+      {error && <div className="error-message">{error}</div>}
     </div>
   );
 
@@ -346,9 +520,25 @@ const IdeaGenerator = () => {
             <div className="analysis-footer">
               <p><strong>Domain:</strong> {generatedIdea.metadata.domain} / {generatedIdea.metadata.subdomain}</p>
               <p><strong>Target Audience:</strong> {generatedIdea.metadata.target_audience}</p>
-              <p><strong>Affected Location:</strong> {generatedIdea.metadata.location}</p>
+              <p><strong>Affected Location:</strong> {generatedIdea.metadata.location} {formData.sublocation || customLocationDetail ? `(${formData.sublocation || customLocationDetail})` : ''}</p>
               <p><strong>Urgency Level:</strong> {generatedIdea.metadata.urgency}</p>
               <p><strong>Priority Level:</strong> {generatedIdea.metadata.priority}</p>
+            </div>
+            
+            <div className="action-buttons">
+              <button 
+                className="save-btn" 
+                onClick={handleSaveIdea}
+                disabled={loading.saving}
+              >
+                {loading.saving ? 'Saving...' : 'Save Problem'}
+              </button>
+              <button 
+                className="reset-btn"
+                onClick={() => setGeneratedIdea(null)}
+              >
+                Generate New
+              </button>
             </div>
           </div>
         </div>
@@ -356,7 +546,7 @@ const IdeaGenerator = () => {
         <div className="empty-state">
           <div className="empty-state-icon">💡</div>
           <h3>Problem Analysis will appear here</h3>
-          <p>Fill out the form and click "Generate Problem Statement" to get started.</p>
+          <p>Fill out the form and click "Generate Solution" to get started.</p>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .models import industry_mapping, priority, main_industry ,urgency,affectedscope
+from .models import industry_mapping, priority, main_industry ,urgency,affectedscope,national,continental,regional
 from django.db import connection
 
 import os
@@ -33,6 +33,24 @@ def get_affectedscope(request):
 def get_industries(request):
     industries = list(main_industry.objects.values_list('name', flat=True))
     return Response({"industries": industries})
+
+@api_view(['GET'])
+def get_national(request):
+    nationalities = list(national.objects.values_list('country_name', flat=True))
+    return Response({"national": nationalities})
+
+@api_view(['GET'])
+def get_continental(request):
+    continentals = list(continental.objects.values_list('continent_name', flat=True))
+    return Response({"continental": continentals})
+
+@api_view(['GET'])
+def get_regional(request):
+    regionals = list(regional.objects.values_list('region_name', flat=True))
+    return Response({"regional": regionals})
+
+
+
 
 
 @api_view(['GET'])
@@ -115,6 +133,38 @@ def generate_ideas(request):
 
 
 
+from .models import IdeaLog  # make sure you import
+
+@api_view(['POST'])
+def save_full_idea_log(request):
+    try:
+        data = request.data
+
+        required_fields = [
+            "focus", "main_industry", "subdomain", "target_Audience",
+            "Location", "Urgency", "Priority",
+            "generated_ideas"
+        ]
+        for field in required_fields:
+            if field not in data:
+                return Response({"detail": f"Missing field: {field}"}, status=400)
+
+        log = IdeaLog.objects.create(
+            focus=data["focus"],
+            main_industry=data["main_industry"],
+            subdomain=data["subdomain"],
+            target_Audience=data["target_Audience"],
+            Location=data["Location"],
+            Urgency=data["Urgency"],
+            Priority=data["Priority"],
+            generated_ideas=data["generated_ideas"],
+            
+        )
+
+        return Response({"message": "Idea log saved", "id": log.id}, status=201)
+
+    except Exception as e:
+        return Response({"detail": str(e)}, status=500)
 
 
 # @api_view(['GET'])

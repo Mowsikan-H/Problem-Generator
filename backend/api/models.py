@@ -38,7 +38,50 @@ class affectedscope(models.Model):
         db_table = 'affectedscope'  # use existing table name
 
 
-        
+class national(models.Model):
+    country_name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "national"
+
+
+class continental(models.Model):
+    continent_name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "continental"
+
+
+
+class regional(models.Model):
+    region_name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "regional"
+
+
+
+
+
+# models.py
+class IdeaLog(models.Model):
+    focus = models.CharField(max_length=100)
+    main_industry = models.CharField(max_length=100)
+    subdomain = models.CharField(max_length=100)
+    target_Audience = models.CharField(max_length=100)
+    Location = models.CharField(max_length=100)
+    Urgency = models.CharField(max_length=100)
+    Priority = models.CharField(max_length=100)
+
+    generated_ideas = models.TextField()  # Save generated text
+    
+
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'idea_log'
+
+
 # class user_selection(models.Model):
 #     focus = models.CharField(max_length=100)
 #     main_industry = models.CharField(max_length=100)
